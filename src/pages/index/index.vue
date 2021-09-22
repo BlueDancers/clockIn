@@ -1,20 +1,21 @@
 <template>
   <view class="index">
-    <view class="label_list">
-      <view
-        class="label_item"
-        v-for="item in eventList"
-        :key="item.title"
-        :class="activeEvent == item.title ? 'active_item' : ''"
-        @click="toggleTitle(item.title)"
-      >
-        <view class="item_title">{{ item.title }}</view>
-      </view>
+    <!-- 侧边栏开关 -->
+    <image class="open_menu" :style="{ top: `${barHeight + 10}px` }" src="../../images/menu.png"></image>
+    <!-- 分享给某人 -->
+    <view class="share_dom">
+      <text class="share_text">发送给某人</text>
     </view>
-    <view class="btn">
-      <nut-button type="primary" @click="startTime">点我</nut-button>
+    <!-- 背景时钟 -->
+    <image class="time_back" src="../../images/time.png"></image>
+    <!-- 当前时间 -->
+    <view class="carrent_time">18:30:20</view>
+    <!-- 按钮 -->
+    <!-- 底部 -->
+    <view>
+      <!-- 流星 -->
+      <!-- 每日金句 -->
     </view>
-    <nut-toast :msg="msg" v-model:visible="show" :type="type" :cover="false" />
   </view>
 </template>
 
@@ -33,35 +34,16 @@ export default {
   setup() {
     const db = Taro.cloud.database()
     const timeStatus = ref(false) // false false 不可以开始事件
-    const activeEvent = ref('学习')
-    const eventList = ref([
-      {
-        image: '',
-        title: '学习',
-      },
-      {
-        image: '',
-        title: '吃饭',
-      },
-      {
-        image: '',
-        title: '休息',
-      },
-      {
-        image: '',
-        title: '出去玩',
-      },
-      // {
-      //   image: '',
-      //   title: '谈恋爱',
-      // },
-    ])
+    const barHeight = ref(0)
     const state = reactive({
       msg: '欢迎使用 NutUI3.0 开发小程序',
       type: 'text',
       show: false,
     })
-
+    // 获取高度
+    Taro.getSystemInfo({}).then((res) => {
+      barHeight.value = res.statusBarHeight
+    })
     const startTime = async () => {
       // 查询服务端是否存在未完成数据
       if (timeStatus.value) {
@@ -99,17 +81,11 @@ export default {
           console.log(res)
         })
     }
-    const toggleTitle = (title) => {
-      activeEvent.value = title
-    }
-
     return {
       ...toRefs(state),
+      barHeight,
       startTime,
       findServer,
-      eventList,
-      activeEvent,
-      toggleTitle,
     }
   },
 }
@@ -117,33 +93,49 @@ export default {
 
 <style lang="scss">
 page {
-  background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+  background: #66cccc;
 }
 .index {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  .label_list {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    .label_item {
-      margin: 10rpx;
-      width: 50px;
-      border-radius: 5px;
-      border: 1px solid rgb(0, 0, 0);
-      .item_title {
-        font-size: 28rpx;
-      }
-    }
-    .active_item {
-      background-color: #84c0cb;
-      color: #fff;
-      border: 1px solid #fff;
+  position: relative;
+  .open_menu {
+    position: absolute;
+    top: 40px;
+    left: 20px;
+    width: 24px;
+    height: 24px;
+  }
+  .share_dom {
+    position: absolute;
+    z-index: 10;
+    top: 140px;
+    right: 0px;
+    width: 79px;
+    height: 24px;
+    background: #ffffff;
+    border-radius: 91px 0px 0px 91px;
+    text-align: center;
+    .share_text {
+      line-height: 24px;
+      font-size: 13px;
+      font-weight: 400;
+      color: #666699;
     }
   }
-  .btn {
+  .time_back {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 217px;
+    height: 256px;
+  }
+  .carrent_time {
+    position: absolute;
+    left: 50%;
+    top: 130px;
+    transform: translate(-50%, 0);
+    font-size: 59px;
+    font-weight: bold;
+    color: #666699;
   }
 }
 </style>
