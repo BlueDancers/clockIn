@@ -37,3 +37,25 @@ export function parseTime(time, cFormat?) {
   })
   return time_str
 }
+
+/**
+ * 把一个时间戳转换为时分秒天数组
+ * @param duration 计时时长
+ */
+export function formatTimeArray(duration) {
+  if (duration <= 0) {
+    return ['00', '00', '00', '00']
+  }
+
+  // 计算天数
+  let days = Math.floor(duration / (1000 * 60 * 60 * 24)) + ''
+
+  // 计算时分秒
+  let hours = Math.floor((duration % (1000 * 60 * 60 * 24 * 24)) / (1000 * 60 * 60)) + ''
+
+  let minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60)) + ''
+
+  let seconds = Math.floor((duration % (1000 * 60)) / 1000) + ''
+
+  return [hours.padStart(2, '0'), minutes.padStart(2, '0'), seconds.padStart(2, '0')]
+}
