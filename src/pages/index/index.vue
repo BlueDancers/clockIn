@@ -226,6 +226,7 @@ page {
     font-size: 59px;
     font-weight: bold;
     color: #666699;
+    font-family: 'myfont';
   }
   .start_btn {
     position: absolute;
@@ -304,8 +305,8 @@ page {
       transform: translate(-50%, 0);
       width: 296px;
       .bottom_text {
+        font-family: 'myfont';
         font-size: 14px;
-        font-family: PingFangSC-Regular, PingFang SC;
         font-weight: 400;
         color: #666699;
         line-height: 20px;

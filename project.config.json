@@ -5,7 +5,7 @@
   "appid": "wx7d0088e70cbe599c",
   "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "es6": false,
     "enhance": true,
     "postcss": false,
