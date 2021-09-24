@@ -38,7 +38,10 @@
         <image class="bottom_text_icon" src="../../images/fy.png"></image>
       </view>
     </view>
+    <!-- 侧边栏 -->
     <left-draw :leftDrawShow="leftDrawShow" @closeLeft="closeLeft"></left-draw>
+    <!-- 学习结束弹窗 -->
+    <event-end :eventEndShow="eventEndShow" @close="closeEventEnd"></event-end>
   </view>
 </template>
 
@@ -47,13 +50,18 @@ import Taro from '@tarojs/taro'
 import { reactive, ref, toRefs } from 'vue'
 import { todoList } from '../../database'
 import leftDraw from './components/leftDraw.vue'
+import eventEnd from './components/eventEnd.vue'
+import useLeftDraw from './funData/leftDraw'
 import useIndexTime from './funData/index_time'
+import useBarHeight from './funData/barHeight'
+import useEventEnd from './funData/eventEnd';
 import { parseTime, formatTimeArray } from '../../utils/index'
 
 export default {
   name: 'Index',
   components: {
     leftDraw,
+    eventEnd,
   },
   onShow() {
     // 获取是否存在运行中的todo
@@ -74,26 +82,20 @@ export default {
   setup() {
     const db = Taro.cloud.database()
     const timeData = useIndexTime() // 时间对象
+    const barHeight = useBarHeight() // 获取状态高度
+    const leftDraw = useLeftDraw() // 侧边栏
+    const eventEnd = useEventEnd() // 结束弹窗
     const timeCore: any = ref({}) // 正在进行中的事件
     const timeStatus = ref(0) // 0未开始 1 未开始 2 进行中
-    const barHeight = ref(0) // 状态栏高度
-    const leftDrawShow = ref(false) // 侧边栏
-    // 获取高度
-    Taro.getSystemInfo({}).then((res) => {
-      barHeight.value = res.statusBarHeight
-    })
-
-    function openLeft() {
-      leftDrawShow.value = true
-    }
-    function closeLeft() {
-      leftDrawShow.value = false
-    }
     // 开始/结束事件
     const handleEvent = async () => {
       if (!Taro.getStorageSync('login')) {
+        Taro.showToast({
+          title: '还没有登录呢',
+          icon: 'none',
+        })
         // 未登录打开侧边栏
-        openLeft()
+        leftDraw.openLeft()
         return
       }
       // 查询服务端是否存在未完成数据
@@ -116,7 +118,7 @@ export default {
             timeData.startOnLine(data)
             timeData.clearCarrent()
             Taro.showToast({
-              title: '开始学习!!',
+              title: '开始学习~',
               icon: 'none',
             })
           })
@@ -134,12 +136,9 @@ export default {
           .then((res) => {
             console.log(res)
             timeStatus.value = 1
-            timeData.startCarrent()
-            timeData.clearonLine()
-            Taro.showToast({
-              title: '学习结束~~',
-              icon: 'none',
-            })
+            timeData.startCarrent() // 开始时间倒计时
+            timeData.clearonLine() // 停止学习计时器
+            eventEnd.openEventEnd() // 打开学习接触弹窗
           })
           .catch((err) => {
             console.log(err)
@@ -170,10 +169,9 @@ export default {
     return {
       timeStatus,
       ...timeData,
-      barHeight,
-      leftDrawShow,
-      openLeft,
-      closeLeft,
+      ...barHeight,
+      ...leftDraw,
+      ...eventEnd,
       handleEvent,
       findServer,
     }
