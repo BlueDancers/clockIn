@@ -7,30 +7,31 @@ import Taro from '@tarojs/taro'
 
 const App = createApp({
   onShow() {
-    console.log('初始化原函数')
-    Taro.cloud.init({
-      env: 'clockin-0g8pzcuv95c47ea6',
-      traceUser: true,
-    })
-    // 字体文件
-    Taro.cloud
-      .getTempFileURL({
-        fileList: [
-          'cloud://clockin-0g8pzcuv95c47ea6.636c-clockin-0g8pzcuv95c47ea6-1307430541/this/Timeburner-xJB8.ttf',
-        ],
+    if (!Taro.getStorageSync('upImgShow')) {
+      Taro.cloud.init({
+        env: 'clockin-0g8pzcuv95c47ea6',
+        traceUser: true,
       })
-      .then((res) => {
-        return Taro.loadFontFace({
-          family: 'myfont',
-          source: `url(${res.fileList[0].tempFileURL})`,
-          success: (res) => {
-            console.log(res)
-          },
+      // 字体文件
+      Taro.cloud
+        .getTempFileURL({
+          fileList: [
+            'cloud://clockin-0g8pzcuv95c47ea6.636c-clockin-0g8pzcuv95c47ea6-1307430541/this/Timeburner-xJB8.ttf',
+          ],
         })
-      })
-      .catch((error) => {
-        console.log(error);
-      })
+        .then((res) => {
+          return Taro.loadFontFace({
+            family: 'myfont',
+            source: `url(${res.fileList[0].tempFileURL})`,
+            success: (res) => {
+              console.log(res)
+            },
+          })
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    }
   },
   // 入口组件不需要实现 render 方法，即使实现了也会被 taro 所覆盖
 })

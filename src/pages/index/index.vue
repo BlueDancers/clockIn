@@ -41,20 +41,25 @@
     <!-- 侧边栏 -->
     <left-draw :leftDrawShow="leftDrawShow" @closeLeft="closeLeft"></left-draw>
     <!-- 学习结束弹窗 -->
-    <event-end :eventEndShow="eventEndShow" @close="closeEventEnd"></event-end>
+    <event-end
+      :eventEndShow="eventEndShow"
+      :timeCore="timeCore"
+      @close="closeEventEnd"
+      @endEvent="endEvent"
+    ></event-end>
   </view>
 </template>
 
 <script lang="ts">
 import Taro from '@tarojs/taro'
-import { reactive, ref, toRefs } from 'vue'
+import { reactive, Ref, ref, toRefs } from 'vue'
 import { todoList } from '../../database'
 import leftDraw from './components/leftDraw.vue'
 import eventEnd from './components/eventEnd.vue'
 import useLeftDraw from './funData/leftDraw'
 import useIndexTime from './funData/index_time'
 import useBarHeight from './funData/barHeight'
-import useEventEnd from './funData/eventEnd';
+import useEventEnd from './funData/eventEnd'
 import { parseTime, formatTimeArray } from '../../utils/index'
 
 export default {
@@ -65,7 +70,9 @@ export default {
   },
   onShow() {
     // 获取是否存在运行中的todo
-    this.findServer()
+    if (!Taro.getStorageSync('upImgShow')) {
+      this.findServer()
+    }
   },
   // 用户分享
   onShareAppMessage() {
@@ -85,7 +92,17 @@ export default {
     const barHeight = useBarHeight() // 获取状态高度
     const leftDraw = useLeftDraw() // 侧边栏
     const eventEnd = useEventEnd() // 结束弹窗
-    const timeCore: any = ref({}) // 正在进行中的事件
+    let timeCore = reactive({
+      data: {
+        _id: '',
+        date: '',
+        startTime: '',
+        endTime: '',
+        event: '',
+        imgs: [],
+        eventText: '',
+      } as todoList,
+    }) // 正在进行中的事件
     const timeStatus = ref(0) // 0未开始 1 未开始 2 进行中
     // 开始/结束事件
     const handleEvent = async () => {
@@ -101,20 +118,21 @@ export default {
       // 查询服务端是否存在未完成数据
       if (timeStatus.value == 1) {
         let data = {
-          openid: '',
           date: parseTime(new Date(), '{y}-{m}-{d}'),
           startTime: parseTime(new Date()),
           endTime: '',
-          event: '学习',
+          event: '学习', // 事件
+          imgs: [], // 效果图片
+          eventText: '', // 说明文字
         }
         db.collection('todo')
           .add({
-            data: data as todoList,
+            data: data,
           })
-          .then((res) => {
+          .then((res: any) => {
             console.log(res)
             timeStatus.value = 2
-            timeCore.value = data
+            timeCore.data = { ...data, _id: res._id }
             timeData.startOnLine(data)
             timeData.clearCarrent()
             Taro.showToast({
@@ -123,27 +141,15 @@ export default {
             })
           })
       } else {
-        ;(db as any)
-          .collection('todo')
-          .where({
-            _id: timeCore.value._id,
-          })
-          .update({
-            data: {
-              endTime: parseTime(new Date()),
-            },
-          })
-          .then((res) => {
-            console.log(res)
-            timeStatus.value = 1
-            timeData.startCarrent() // 开始时间倒计时
-            timeData.clearonLine() // 停止学习计时器
-            eventEnd.openEventEnd() // 打开学习接触弹窗
-          })
-          .catch((err) => {
-            console.log(err)
-          })
+        timeCore.data.endTime = parseTime(new Date())
+        console.log(timeCore)
+        eventEnd.openEventEnd() // 打开学习接触弹窗
       }
+    }
+    function endEvent() {
+      timeStatus.value = 1
+      timeData.startCarrent() // 开始时间倒计时
+      timeData.clearonLine() // 停止学习计时器
     }
     // 检查服务端时间
     const findServer = async () => {
@@ -153,12 +159,14 @@ export default {
           endTime: '',
         })
         .get()
-        .then((res) => {
+        .then((res: any) => {
           if (res.data.length) {
             // 存在进行中的任务
             timeStatus.value = 2
             timeData.startOnLine(res.data[0])
-            timeCore.value = res.data[0]
+            console.log('存在的任务', res.data[0])
+
+            timeCore.data = res.data[0]
           } else {
             timeStatus.value = 1
             timeData.startCarrent()
@@ -174,6 +182,8 @@ export default {
       ...eventEnd,
       handleEvent,
       findServer,
+      timeCore,
+      endEvent,
     }
   },
 }

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 export default function eventEnd() {
-  const eventEndShow = ref(true)
+  const eventEndShow = ref(false)
   function openEventEnd() {
     eventEndShow.value = true
   }

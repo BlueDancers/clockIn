@@ -4,10 +4,6 @@ export interface todoList {
    */
   _id?: string
   /**
-   * 用户的openId
-   */
-  openid: string
-  /**
    * 年月日
    */
   date: string
@@ -23,6 +19,14 @@ export interface todoList {
    * 正在做的事情
    */
   event: string
+  /**
+   * 图片列表
+   */
+  imgs: string[]
+  /**
+   * 说明文字
+   */
+  eventText: string
 }
 
 export interface labelList {
