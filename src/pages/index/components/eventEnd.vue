@@ -26,7 +26,7 @@
 <script lang="ts">
 import { defineComponent, reactive, Ref, ref, watch, watchEffect } from 'vue'
 import Taro from '@tarojs/taro'
-import { formatTimeArray } from '../../../utils'
+import { formatTimeArray, parseTime } from '../../../utils'
 export default defineComponent({
   props: ['eventEndShow', 'timeCore'],
   setup(props, { emit }) {
@@ -53,7 +53,7 @@ export default defineComponent({
     function uploadImg() {
       Taro.setStorageSync('upImgShow', true)
       Taro.chooseImage({
-        sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+        sizeType: ['compressed'], // 可以指定是原图还是压缩图，默认二者都有
         sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
         success: (res) => {
           Taro.showLoading({
@@ -97,8 +97,8 @@ export default defineComponent({
     /**
      * 提交数据
      */
-    function successEnd() {
-      if (endForm.endText) {
+    async function successEnd() {
+      if (!endForm.endText) {
         Taro.showToast({
           title: '请填写今日学习内容',
           icon: 'none',
@@ -112,7 +112,21 @@ export default defineComponent({
           imgs: endForm.imgs,
         },
       })
-      ;(db as any)
+      // 更新todo
+      // 更新用户全局数据
+      // 更新用户具体时间记录
+      Promise.all([updateTodo(), updateUserTime(), updateTimeTable()])
+        .then((res) => {
+          console.log('数据更新成功', res)
+          emit('endEvent')
+          close()
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+    }
+    function updateTodo() {
+      return (db as any)
         .collection('todo')
         .where({
           _id: props.timeCore.data._id,
@@ -124,13 +138,68 @@ export default defineComponent({
             imgs: endForm.imgs,
           },
         })
-        .then((res) => {
-          console.log('数据更新成功', res)
-          emit('endEvent')
-          close()
+    }
+    function updateUserTime() {
+      let { endTime, startTime } = props.timeCore.data
+      let carryTime = new Date(endTime).getTime() - new Date(startTime).getTime()
+      return (db as any)
+        .collection('user')
+        .where({
+          _openid: props.timeCore.data._openid,
         })
-        .catch((err) => {
-          console.log(err)
+        .update({
+          data: {
+            alltime: db.command.inc(carryTime),
+          },
+        })
+    }
+    // 更新
+    function updateTimeTable() {
+      let y = parseTime(Date.now(), '{y}')
+      let m = parseTime(Date.now(), '{m}')
+      let d = parseTime(Date.now(), '{d}')
+      let { endTime, startTime } = props.timeCore.data
+      let carryTime = new Date(endTime).getTime() - new Date(startTime).getTime()
+
+      db.collection('eventTime')
+        .where({
+          _openid: props.timeCore.data._openid,
+        })
+        .get()
+        .then((res) => {
+          if (res.data.length == 0) {
+            // 无数据,初始化数据
+            return db.collection('eventTime').add({
+              data: {
+                timeObj: {
+                  [y]: { [m]: { [d]: carryTime } },
+                },
+              },
+            })
+          } else {
+            let data = res.data[0]
+            // 更新数据
+            try {
+              if (data.timeObj[y][m][d]) {
+                data.timeObj[y][m][d] = data.timeObj[y][m][d] + carryTime
+              } else {
+                data.timeObj[y][m][d] = carryTime
+              }
+            } catch (error) {
+              console.log('更新时间错误', error)
+              data.timeObj[y][m][d] = carryTime
+            }
+            return (db as any)
+              .collection('eventTime')
+              .where({
+                _id: data._id,
+              })
+              .update({
+                data: {
+                  timeObj: data.timeObj,
+                },
+              })
+          }
         })
     }
     return {

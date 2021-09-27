@@ -106,7 +106,8 @@ export default defineComponent({
       db.collection('user')
         .add({
           data: {
-            data,
+            ...data,
+            alltime: 0,
           },
         })
         .then(() => {
