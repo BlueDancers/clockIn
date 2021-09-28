@@ -21,8 +21,14 @@
       </view>
       <!-- 打卡周期 -->
       <view class="time_tabel_com">
-        <view class="table_text">本月学习12天,累计80小时</view>
-        <view class="table_con"> </view>
+        <view class="table_text" v-if="carrentDay != 0">本月学习{{ carrentDay }}天,累计{{ carrentTime }}小时</view>
+        <view class="table_text" v-if="carrentDay == 0">本月您还没开始学习哦</view>
+        <view class="table_con">
+          <view class="table_con_list">
+            <view class="table_item" :class="item > 0 ? 'data_item' : ''" v-for="item in carrentMonth" :key="item">
+            </view>
+          </view>
+        </view>
       </view>
       <!-- 菜单 -->
       <view class="menu_list">
@@ -50,7 +56,8 @@
 
 <script lang="ts">
 import Taro from '@tarojs/taro'
-import { defineComponent, ref } from 'vue'
+import { formatTimeArray, parseTime } from '../../../utils'
+import { defineComponent, onMounted, Ref, ref, watch } from 'vue'
 export default defineComponent({
   props: ['leftDrawShow'],
   setup(props, { emit }) {
@@ -59,13 +66,34 @@ export default defineComponent({
     const userInfo = ref({
       avatarUrl: '',
       nickName: '',
+      _openid: '',
     })
+    const carrentEvent = ref({}) // 当月时间表
+    const carrentDay = ref(0) // 当月学习天数
+    const carrentTime: Ref<any> = ref([]) // 当月学习时间
+    const carrentMonth: Ref<any> = ref([]) // 当月天数
+    onMounted(() => {
+      userInfo.value = Taro.getStorageSync('userInfo')
+      islogin.value = Taro.getStorageSync('login')
 
-    userInfo.value = Taro.getStorageSync('userInfo')
-    islogin.value = Taro.getStorageSync('login')
+      var date = new Date()
+      var year = date.getFullYear()
+      var month = date.getMonth() + 1
+      var d = new Date(year, month, 0).getDate()
+      carrentMonth.value = Array(d).fill(0)
+    })
+    watch(
+      () => props.leftDrawShow,
+      (value) => {
+        if (value) {
+          getEventInfo()
+        }
+      }
+    )
     function close() {
       emit('closeLeft')
     }
+    // 按钮触发登录
     function getUserProfile() {
       if (!Taro.getStorageSync('login')) {
         Taro.getUserProfile({
@@ -86,6 +114,7 @@ export default defineComponent({
         })
       }
     }
+    // 获取微信信息(判断是否新用户)
     function getUserInfo(data) {
       db.collection('user')
         .where({
@@ -101,6 +130,7 @@ export default defineComponent({
           }
         })
     }
+    // 创建用户
     function registory(data) {
       console.log('添加用户', data)
       db.collection('user')
@@ -114,6 +144,7 @@ export default defineComponent({
           loginSucc(data)
         })
     }
+    // 登录成功的回调函数
     function loginSucc(data) {
       Taro.setStorageSync('login', true)
       Taro.setStorageSync('userInfo', data)
@@ -124,6 +155,7 @@ export default defineComponent({
         icon: 'success',
       })
     }
+    // 退出登录
     function unLogin() {
       Taro.removeStorageSync('login')
       Taro.removeStorageSync('userInfo')
@@ -131,13 +163,74 @@ export default defineComponent({
       userInfo.value.nickName = ''
       islogin.value = false
     }
-    return { userInfo, islogin, close, props, getUserProfile, unLogin }
+    /**
+     * 获取学习数据
+     */
+    function getEventInfo() {
+      let y = parseTime(Date.now(), '{y}')
+      let m = parseTime(Date.now(), '{m}')
+      db.collection('eventTime')
+        .where({
+          _openid: userInfo.value._openid,
+        })
+        .get()
+        .then((res) => {
+          if (res.data.length == 0) {
+            return false
+          }
+          let data = res.data[0]
+          // 获取本月学习多少天
+          carrentEvent.value = data.timeObj[y][m]
+
+          // 积累多少小时
+          carrentDay.value = Object.keys(carrentEvent.value).length
+          let allTime = formatTimeArray(
+            Object.keys(carrentEvent.value).reduce((item, data) => {
+              return item + carrentEvent.value[data]
+            }, 0)
+          ).map((e) => Number(e))
+          carrentTime.value = allTime.splice(0, 2).join('.')
+
+          // 填入存在数据的天数
+          carrentMonth.value = carrentMonth.value.map((res, index) => {
+            if (Object.keys(carrentEvent.value).includes(String(index))) {
+              res = carrentEvent.value[String(index)]
+            }
+            return res
+          })
+          console.log('正式数据', carrentMonth.value)
+        })
+    }
+    return {
+      userInfo,
+      islogin,
+      close,
+      props,
+      getUserProfile,
+      unLogin,
+      carrentDay,
+      carrentTime,
+      carrentMonth,
+    }
   },
 })
 </script>
 
 <style lang="scss">
 .left_draw {
+  animation: openDraw 0.3s ease 0s 1 normal forwards;
+  position: relative;
+  z-index: 100;
+  @keyframes openDraw {
+    0% {
+      opacity: 0;
+      margin-left: -100%;
+    }
+    100% {
+      opacity: 1;
+      margin-left: 0px;
+    }
+  }
   .left_draw_back {
     position: fixed;
     z-index: 100;
@@ -202,6 +295,9 @@ export default defineComponent({
     .time_tabel_com {
       margin-top: 35px;
       margin-left: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       .table_text {
         font-size: 13px;
         font-family: PingFangSC-Regular, PingFang SC;
@@ -210,11 +306,25 @@ export default defineComponent({
       }
       .table_con {
         margin-top: 6px;
-        width: 250px;
-        height: 93px;
+        padding: 8px;
         background: #666699;
         box-shadow: 2px 1px 9px 0px rgba(102, 102, 153, 1);
         border-radius: 12px;
+        .table_con_list {
+          display: grid;
+          grid-template-columns: repeat(10, 20px);
+          grid-template-rows: repeat(4, 20px);
+          grid-row-gap: 5px;
+          grid-column-gap: 5px;
+          .table_item {
+            background-color: white;
+            border-radius: 4px;
+          }
+          .data_item {
+            background: linear-gradient(132deg, #cefcfc 0%, #66cccc 100%);
+            box-shadow: 2px 1px 9px 0px rgba(102, 102, 153, 1);
+          }
+        }
       }
     }
     .menu_list {

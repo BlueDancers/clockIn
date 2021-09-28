@@ -160,43 +160,34 @@ export default defineComponent({
       let d = parseTime(Date.now(), '{d}')
       let { endTime, startTime } = props.timeCore.data
       let carryTime = new Date(endTime).getTime() - new Date(startTime).getTime()
+      console.log('查询参数', {
+        _openid: props.timeCore.data._openid,
+        [`timeObj-${y + 1}-${m}`]: d,
+      })
 
-      db.collection('eventTime')
+      return db
+        .collection('eventTime')
         .where({
           _openid: props.timeCore.data._openid,
         })
-        .get()
+        .count()
         .then((res) => {
-          if (res.data.length == 0) {
+          if (res.total == 0) {
             // 无数据,初始化数据
             return db.collection('eventTime').add({
               data: {
-                timeObj: {
-                  [y]: { [m]: { [d]: carryTime } },
-                },
+                timeObj: { [y]: { [m]: { [d]: carryTime } } },
               },
             })
           } else {
-            let data = res.data[0]
-            // 更新数据
-            try {
-              if (data.timeObj[y][m][d]) {
-                data.timeObj[y][m][d] = data.timeObj[y][m][d] + carryTime
-              } else {
-                data.timeObj[y][m][d] = carryTime
-              }
-            } catch (error) {
-              console.log('更新时间错误', error)
-              data.timeObj[y][m][d] = carryTime
-            }
             return (db as any)
               .collection('eventTime')
               .where({
-                _id: data._id,
+                _openid: props.timeCore.data._openid,
               })
               .update({
                 data: {
-                  timeObj: data.timeObj,
+                  [`timeObj.${y}.${m}.${d}`]: db.command.inc(carryTime),
                 },
               })
           }

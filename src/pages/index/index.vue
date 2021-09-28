@@ -12,9 +12,13 @@
     <!-- 背景时钟 -->
     <image class="time_back" src="../../images/time.png"></image>
     <!-- 当前时间 -->
-    <view class="carrent_time">
-      <text v-if="timeStatus == 1">{{ carrentTime }}</text>
-      <text v-if="timeStatus == 2">{{ onLineTime }}</text>
+    <view class="carrent_time" v-if="timeStatus == 1">
+      <text>{{ carrentTime }}</text>
+    </view>
+    <!-- 进行中的学习 -->
+    <view class="time_online" v-else>
+      <view class="online_title">已进行</view>
+      <view class="this_time">{{ onLineTime }}</view>
     </view>
     <!-- 按钮 -->
     <view class="start_btn" @click="handleEvent">
@@ -95,6 +99,7 @@ export default {
     let timeCore = reactive({
       data: {
         _id: '',
+        _openid: '',
         date: '',
         startTime: '',
         endTime: '',
@@ -125,14 +130,14 @@ export default {
           imgs: [], // 效果图片
           eventText: '', // 说明文字
         }
+        let _openid = Taro.getStorageSync('userInfo')._openid
         db.collection('todo')
           .add({
             data: data,
           })
           .then((res: any) => {
-            console.log(res)
             timeStatus.value = 2
-            timeCore.data = { ...data, _id: res._id }
+            timeCore.data = { ...data, _id: res._id, _openid: _openid }
             timeData.startOnLine(data)
             timeData.clearCarrent()
             Taro.showToast({
@@ -142,7 +147,6 @@ export default {
           })
       } else {
         timeCore.data.endTime = parseTime(new Date())
-        console.log(timeCore)
         eventEnd.openEventEnd() // 打开学习接触弹窗
       }
     }
@@ -235,6 +239,26 @@ page {
     font-weight: bold;
     color: #666699;
     font-family: 'myfont';
+  }
+  .time_online {
+    position: absolute;
+    left: 50%;
+    top: 160px;
+    transform: translate(-50%, 0);
+    .online_title {
+      position: relative;
+      right: 10px;
+      font-size: 22px;
+      color: #666699;
+    }
+    .this_time {
+      margin-top: 6px;
+      font-size: 50px;
+      font-family: PingFangSC-Medium, PingFang SC;
+      font-weight: bold;
+      color: #666699;
+      font-family: 'myfont';
+    }
   }
   .start_btn {
     position: absolute;

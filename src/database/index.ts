@@ -2,7 +2,11 @@ export interface todoList {
   /**
    * id
    */
-  _id?: string
+  _id: string
+  /**
+   * 用户id
+   */
+  _openid: string
   /**
    * 年月日
    */
