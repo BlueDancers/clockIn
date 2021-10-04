@@ -3,14 +3,31 @@
     <view class="event_end_back" @click="close"></view>
     <view class="event_end_modal">
       <view class="modal_header"></view>
-      <image class="modal_header_back" src="../../../images/end_header_back.png"></image>
-      <view class="header_time">
-        本次累计学习
-        <text v-if="eventTime[0] > 0">{{ eventTime[0] }}小时</text>
-        {{ eventTime[1] }}分钟
+      <view class="modal_datas">
+        <view class="data_item">
+          <view class="item_title">本次学习</view>
+          <view class="item_num">
+            <view class="num">{{ eventTime }}</view>
+            <view class="unit">min</view>
+          </view>
+        </view>
+        <view class="data_item">
+          <view class="item_title">本月学习</view>
+          <view class="item_num">
+            <view class="num">{{ carrentTime }}</view>
+            <view class="unit">hours</view>
+          </view>
+        </view>
+        <view class="data_item">
+          <view class="item_title">连续打卡</view>
+          <view class="item_num">
+            <view class="num">20</view>
+            <view class="unit">day</view>
+          </view>
+        </view>
       </view>
-      <view class="header_title">今天都学习了什么呢？</view>
-      <textarea class="textarea" v-model="endForm.endText" placeholder="英语 ..高数....."></textarea>
+      <view class="modal_other">🌟星光不负赶路人</view>
+      <textarea class="textarea" v-model="endForm.endText" placeholder="今天都学习了什么呢？"></textarea>
       <!-- 照片 -->
       <view class="img_list">
         <view class="upload_img" @click="uploadImg">
@@ -24,26 +41,31 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, Ref, ref, watch, watchEffect } from 'vue'
+import { defineComponent, onMounted, reactive, Ref, ref, watch, watchEffect } from 'vue'
 import Taro from '@tarojs/taro'
 import { formatTimeArray, parseTime } from '../../../utils'
+import useTimeData from '../funData/TimeData'
 export default defineComponent({
   props: ['eventEndShow', 'timeCore'],
   setup(props, { emit }) {
-    watchEffect(() => {
-      if (props.eventEndShow) {
-        console.log('打开了')
-        let { startTime, endTime } = props.timeCore.data
-        eventTime.value = formatTimeArray(new Date(endTime).getTime() - new Date(startTime).getTime())
-      }
-    })
     const db = Taro.cloud.database()
     const endForm = reactive({
       endText: '',
       imgs: [] as any[],
     })
     const showImg: Ref<string[]> = ref([]) // 真正显示的
-    const eventTime: Ref<any[]> = ref([])
+    const eventTime: Ref<any> = ref(0)
+    const timeData = useTimeData
+    watchEffect(() => {
+      if (props.eventEndShow) {
+        let { startTime, endTime } = props.timeCore.data
+        let diffTime = (new Date(endTime).getTime() - new Date(startTime).getTime()) % (1000 * 60 * 60)
+        eventTime.value = Math.floor(diffTime / (1000 * 60))
+        if (!timeData.carrentTime.value) {
+          timeData.getEventInfo()
+        }
+      }
+    })
     // taro里面使用watch会出现问题
     function close() {
       endForm.endText = ''
@@ -64,7 +86,6 @@ export default defineComponent({
           const name = Taro.getStorageSync('userInfo')._openid + '-' + Date.now()
           const cloudPath = name + filePath.match(/\.[^.]+?$/)[0]
           console.log(filePath, name, cloudPath)
-
           Taro.cloud.uploadFile({
             cloudPath, //云存储图片名字
             filePath, //临时路径
@@ -105,13 +126,6 @@ export default defineComponent({
         })
         return
       }
-      console.log({
-        data: {
-          endTime: props.timeCore.data.endTime,
-          eventText: endForm.endText,
-          imgs: endForm.imgs,
-        },
-      })
       // 更新todo
       // 更新用户全局数据
       // 更新用户具体时间记录
@@ -119,6 +133,7 @@ export default defineComponent({
         .then((res) => {
           console.log('数据更新成功', res)
           emit('endEvent')
+          timeData.getEventInfo()
           close()
         })
         .catch((err) => {
@@ -164,7 +179,6 @@ export default defineComponent({
         _openid: props.timeCore.data._openid,
         [`timeObj-${y + 1}-${m}`]: d,
       })
-
       return db
         .collection('eventTime')
         .where({
@@ -200,6 +214,7 @@ export default defineComponent({
       successEnd,
       eventTime,
       endForm,
+      ...timeData,
     }
   },
 })
@@ -234,38 +249,62 @@ export default defineComponent({
       left: 0px;
       width: 284px;
       height: 114px;
-      background-color: #66cccc;
       border-radius: 11px 11px 0px 0px;
+      background-image: url('../../../images/end_header.png');
+      background-size: 100% 100%;
     }
-    .modal_header_back {
-      position: absolute;
-      top: -46px;
-      right: -30px;
-      width: 105px;
-      height: 115px;
-    }
-    .header_time {
-      margin-top: 24px;
+    .modal_datas {
       position: relative;
-      z-index: 10;
-      text-align: center;
-      font-size: 18px;
+      z-index: 101;
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-family: 'myfont';
+      .data_item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: #ffffff;
+        .item_title {
+          font-size: 13px;
+          font-weight: 400;
+        }
+        .item_num {
+          margin-top: 6px;
+          display: flex;
+          align-items: flex-end;
+          .num {
+            font-size: 18px;
+            font-weight: bold;
+          }
+          .unit {
+            margin-left: 4px;
+            font-size: 13px;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+    .modal_other {
+      position: relative;
+      z-index: 101;
+      width: 100%;
+      padding-right: 20px;
+      text-align: right;
+      margin-top: 16px;
+      font-size: 12px;
       font-weight: 400;
       color: #ffffff;
     }
     .header_title {
-      margin-top: 22px;
-      position: relative;
-      z-index: 10;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 400;
-      color: #ffffff;
     }
     .textarea {
-      margin-top: 36px;
+      font-size: 14px;
+      margin-top: 30px;
       padding: 6px;
-      width: 232px;
+      width: 246px;
       height: 108px;
       background: #ececec;
       border-radius: 3px;
@@ -275,8 +314,8 @@ export default defineComponent({
       grid-template-columns: 72px 72px 72px;
       grid-row-gap: 12px;
       grid-column-gap: 12px;
-      margin-top: 12px;
-      width: 244px;
+      margin-top: 8px;
+      width: 256px;
       .upload_img {
         position: relative;
         width: 72px;
@@ -293,13 +332,14 @@ export default defineComponent({
           height: 30px;
         }
       }
+      .upload_img {
+      }
     }
     .event_end_btn {
       margin-top: 45px;
       margin-bottom: 16px;
-      width: 212px;
-      height: 31px;
-      line-height: 31px;
+      width: 242px;
+      height: 38px;
       background-color: #66cccc;
       border-radius: 4px;
       font-size: 15px;

@@ -5,9 +5,10 @@ import '@nutui/nutui-taro/dist/style.css'
 import './app.scss'
 import Taro from '@tarojs/taro'
 
+let showStatus = false
 const App = createApp({
   onShow() {
-    if (!Taro.getStorageSync('upImgShow')) {
+    if (!showStatus) {
       Taro.cloud.init({
         env: 'clockin-0g8pzcuv95c47ea6',
         traceUser: true,

@@ -9,14 +9,14 @@
           <view class="info_user">{{ userInfo.nickName }}</view>
           <view class="unfo_label">学渣</view>
         </view>
-        <view v-else class="info_unlogin" @click="getUserProfile">
+        <view v-else class="info_unlogin" @click="getUserProfile()">
           点击登录
         </view>
       </view>
       <!-- 距离目标 -->
       <view class="time_text">
         距离考研还差
-        <text class="time_number">240</text>
+        <text class="time_number">{{ kaoyan }}</text>
         天
       </view>
       <!-- 打卡周期 -->
@@ -56,161 +56,32 @@
 
 <script lang="ts">
 import Taro from '@tarojs/taro'
-import { formatTimeArray, parseTime } from '../../../utils'
-import { defineComponent, onMounted, Ref, ref, watch } from 'vue'
+import { defineComponent, onMounted, ref, watchEffect } from 'vue'
+import useTimeData from '../funData/TimeData'
+import useUserData from '../funData/userData'
 export default defineComponent({
   props: ['leftDrawShow'],
   setup(props, { emit }) {
-    const db = Taro.cloud.database()
-    const islogin = ref(false)
-    const userInfo = ref({
-      avatarUrl: '',
-      nickName: '',
-      _openid: '',
-    })
-    const carrentEvent = ref({}) // 当月时间表
-    const carrentDay = ref(0) // 当月学习天数
-    const carrentTime: Ref<any> = ref([]) // 当月学习时间
-    const carrentMonth: Ref<any> = ref([]) // 当月天数
+    const timeData = useTimeData
+    const userData = useUserData
+    const kaoyan = ref(0)
     onMounted(() => {
-      userInfo.value = Taro.getStorageSync('userInfo')
-      islogin.value = Taro.getStorageSync('login')
-
-      var date = new Date()
-      var year = date.getFullYear()
-      var month = date.getMonth() + 1
-      var d = new Date(year, month, 0).getDate()
-      carrentMonth.value = Array(d).fill(0)
+      kaoyan.value = Math.ceil((new Date('2022/12/25').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     })
-    watch(
-      () => props.leftDrawShow,
-      (value) => {
-        if (value) {
-          getEventInfo()
-        }
+    watchEffect(() => {
+      if (props.leftDrawShow && userData.islogin.value) {
+        timeData.getEventInfo()
       }
-    )
+    })
     function close() {
       emit('closeLeft')
     }
-    // 按钮触发登录
-    function getUserProfile() {
-      if (!Taro.getStorageSync('login')) {
-        Taro.getUserProfile({
-          desc: '登录使用', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
-          success: (info) => {
-            Taro.cloud.callFunction({
-              name: 'login',
-              data: {},
-              success: (res: any) => {
-                console.log(info)
-                getUserInfo({ ...info.userInfo, openid: res.result.openid })
-              },
-              fail: (err) => {
-                console.error('[云函数] [login] 调用失败', err)
-              },
-            })
-          },
-        })
-      }
-    }
-    // 获取微信信息(判断是否新用户)
-    function getUserInfo(data) {
-      db.collection('user')
-        .where({
-          _openid: data.openid,
-        })
-        .get()
-        .then((res) => {
-          console.log(res.data)
-          if (res.data.length) {
-            loginSucc({ ...res.data[0].data, _openid: res.data[0]._openid })
-          } else {
-            registory(data)
-          }
-        })
-    }
-    // 创建用户
-    function registory(data) {
-      console.log('添加用户', data)
-      db.collection('user')
-        .add({
-          data: {
-            ...data,
-            alltime: 0,
-          },
-        })
-        .then(() => {
-          loginSucc(data)
-        })
-    }
-    // 登录成功的回调函数
-    function loginSucc(data) {
-      Taro.setStorageSync('login', true)
-      Taro.setStorageSync('userInfo', data)
-      userInfo.value = Taro.getStorageSync('userInfo')
-      islogin.value = Taro.getStorageSync('login')
-      Taro.showToast({
-        title: '登录成功~',
-        icon: 'success',
-      })
-    }
-    // 退出登录
-    function unLogin() {
-      Taro.removeStorageSync('login')
-      Taro.removeStorageSync('userInfo')
-      userInfo.value.avatarUrl = ''
-      userInfo.value.nickName = ''
-      islogin.value = false
-    }
-    /**
-     * 获取学习数据
-     */
-    function getEventInfo() {
-      let y = parseTime(Date.now(), '{y}')
-      let m = parseTime(Date.now(), '{m}')
-      db.collection('eventTime')
-        .where({
-          _openid: userInfo.value._openid,
-        })
-        .get()
-        .then((res) => {
-          if (res.data.length == 0) {
-            return false
-          }
-          let data = res.data[0]
-          // 获取本月学习多少天
-          carrentEvent.value = data.timeObj[y][m]
-
-          // 积累多少小时
-          carrentDay.value = Object.keys(carrentEvent.value).length
-          let allTime = formatTimeArray(
-            Object.keys(carrentEvent.value).reduce((item, data) => {
-              return item + carrentEvent.value[data]
-            }, 0)
-          ).map((e) => Number(e))
-          carrentTime.value = allTime.splice(0, 2).join('.')
-
-          // 填入存在数据的天数
-          carrentMonth.value = carrentMonth.value.map((res, index) => {
-            if (Object.keys(carrentEvent.value).includes(String(index))) {
-              res = carrentEvent.value[String(index)]
-            }
-            return res
-          })
-          console.log('正式数据', carrentMonth.value)
-        })
-    }
     return {
-      userInfo,
-      islogin,
       close,
       props,
-      getUserProfile,
-      unLogin,
-      carrentDay,
-      carrentTime,
-      carrentMonth,
+      kaoyan,
+      ...userData,
+      ...timeData,
     }
   },
 })
@@ -228,7 +99,7 @@ export default defineComponent({
     }
     100% {
       opacity: 1;
-      margin-left: 0px;
+      margin-left: 0%;
     }
   }
   .left_draw_back {

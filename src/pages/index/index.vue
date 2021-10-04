@@ -16,7 +16,7 @@
       <text>{{ carrentTime }}</text>
     </view>
     <!-- 进行中的学习 -->
-    <view class="time_online" v-else>
+    <view class="time_online" v-if="timeStatus == 2">
       <view class="online_title">已进行</view>
       <view class="this_time">{{ onLineTime }}</view>
     </view>
@@ -74,8 +74,12 @@ export default {
   },
   onShow() {
     // 获取是否存在运行中的todo
-    if (!Taro.getStorageSync('upImgShow')) {
+    if (!Taro.getStorageSync('upImgShow') && Taro.getStorageSync('login')) {
       this.findServer()
+    } else {
+      setTimeout(() => {
+        this.endEvent() // 开始时间倒计时
+      }, 200)
     }
   },
   // 用户分享
@@ -168,14 +172,11 @@ export default {
             // 存在进行中的任务
             timeStatus.value = 2
             timeData.startOnLine(res.data[0])
-            console.log('存在的任务', res.data[0])
-
             timeCore.data = res.data[0]
           } else {
             timeStatus.value = 1
             timeData.startCarrent()
           }
-          console.log(res.data)
         })
     }
     return {
