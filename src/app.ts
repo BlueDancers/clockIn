@@ -7,6 +7,10 @@ import Taro from '@tarojs/taro'
 
 let showStatus = false
 const App = createApp({
+  onLoad() {
+    // 初始化是否打开了上传图片
+    Taro.setStorageSync('upImgShow', false)
+  },
   onShow() {
     if (!showStatus) {
       Taro.cloud.init({

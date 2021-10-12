@@ -74,7 +74,9 @@ export default {
   },
   onShow() {
     // 获取是否存在运行中的todo
-    if (!Taro.getStorageSync('upImgShow') && Taro.getStorageSync('login')) {
+    let upImgShow = Taro.getStorageSync('upImgShow') // 是否在上传图片
+    let login = Taro.getStorageSync('login') // 当前是否登录
+    if (!upImgShow && login) {
       this.findServer()
     } else {
       setTimeout(() => {
@@ -126,6 +128,21 @@ export default {
       }
       // 查询服务端是否存在未完成数据
       if (timeStatus.value == 1) {
+        // 首先查询是否存在正在执行中的任务
+        let isOnStart = await db
+          .collection('todo')
+          .where({
+            _openid: Taro.getStorageSync('userInfo')._openid,
+            endTime: '',
+          })
+          .get()
+        if (isOnStart.data.length != 0) {
+          Taro.showToast({
+            title: '当前存在未结束任务,请联系客服协助解决问题',
+            icon: 'none',
+          })
+          return false
+        }
         let data = {
           date: parseTime(new Date(), '{y}-{m}-{d}'),
           startTime: parseTime(new Date()),
@@ -151,6 +168,7 @@ export default {
           })
       } else {
         timeCore.data.endTime = parseTime(new Date())
+        console.log('填充结束时间', timeCore.data)
         eventEnd.openEventEnd() // 打开学习接触弹窗
       }
     }
@@ -168,6 +186,7 @@ export default {
         })
         .get()
         .then((res: any) => {
+          console.log('获取到的服务端数据', res.data)
           if (res.data.length) {
             // 存在进行中的任务
             timeStatus.value = 2
