@@ -14,10 +14,13 @@
         </view>
       </view>
       <!-- 距离目标 -->
-      <view class="time_text">
-        距离考研还差
-        <text class="time_number">{{ kaoyan }}</text>
+      <view class="time_text" v-if="target.targetTitle">
+        距离{{ target.targetTitle }}还差
+        <text class="time_number">{{ getinterval }}</text>
         天
+      </view>
+      <view v-else class="time_text">
+        还未设定目标
       </view>
       <!-- 打卡周期 -->
       <view class="time_tabel_com">
@@ -25,19 +28,24 @@
         <view class="table_text" v-if="carrentDay == 0">本月您还没开始学习哦</view>
         <view class="table_con">
           <view class="table_con_list">
-            <view class="table_item" :class="item > 0 ? 'data_item' : ''" v-for="item in carrentMonth" :key="item">
+            <view
+              class="table_item"
+              :class="item > 0 ? 'data_item' : ''"
+              v-for="(item, index) in carrentMonth"
+              :key="index"
+            >
             </view>
           </view>
         </view>
       </view>
       <!-- 菜单 -->
       <view class="menu_list">
-        <view class="list_item">
+        <view class="list_item" @click="gotoTarget">
           <image class="item_icon" src="../../../images/menu1.png"></image>
-          <view class="item_text">输入目标</view>
+          <view class="item_text">设定目标</view>
           <image class="item_next" src="../../../images/right.png"></image>
         </view>
-        <view class="list_item">
+        <!-- <view class="list_item">
           <image class="item_icon" src="../../../images/menu2.png"></image>
           <view class="item_text">意见反馈</view>
           <image class="item_next" src="../../../images/right.png"></image>
@@ -46,7 +54,7 @@
           <image class="item_icon" src="../../../images/menu3.png"></image>
           <view class="item_text">设置</view>
           <image class="item_next" src="../../../images/right.png"></image>
-        </view>
+        </view> -->
       </view>
       <!-- 退出登录 -->
       <button v-if="islogin" class="un_login" @click="unLogin">退出登录</button>
@@ -56,7 +64,7 @@
 
 <script lang="ts">
 import Taro from '@tarojs/taro'
-import { defineComponent, onMounted, ref, watchEffect } from 'vue'
+import { computed, defineComponent, onMounted, ref, watchEffect } from 'vue'
 import useTimeData from '../funData/TimeData'
 import useUserData from '../funData/userData'
 export default defineComponent({
@@ -64,22 +72,31 @@ export default defineComponent({
   setup(props, { emit }) {
     const timeData = useTimeData
     const userData = useUserData
-    const kaoyan = ref(0)
-    onMounted(() => {
-      kaoyan.value = Math.ceil((new Date('2022/12/25').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    const getinterval = computed(() => {
+      return Math.ceil(
+        (new Date(userData.target.value.targetTime.replace(/-/g, '/')).getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
     })
     watchEffect(() => {
       if (props.leftDrawShow && userData.islogin.value) {
         timeData.getEventInfo()
+        userData.getTargetFun()
       }
     })
     function close() {
       emit('closeLeft')
     }
+    function gotoTarget() {
+      Taro.navigateTo({
+        url: '/pages/userTarget/index',
+      })
+    }
     return {
       close,
       props,
-      kaoyan,
+      gotoTarget,
+      getinterval,
       ...userData,
       ...timeData,
     }
@@ -150,6 +167,7 @@ export default defineComponent({
         }
       }
       .info_unlogin {
+        color: white;
         margin-left: 10px;
         font-size: 17px;
       }
@@ -182,12 +200,18 @@ export default defineComponent({
         box-shadow: 2px 1px 9px 0px rgba(102, 102, 153, 1);
         border-radius: 12px;
         .table_con_list {
+          // display: flex;
+          // flex-wrap: wrap;
+          // align-items: center;
           display: grid;
           grid-template-columns: repeat(10, 20px);
           grid-template-rows: repeat(4, 20px);
           grid-row-gap: 5px;
           grid-column-gap: 5px;
           .table_item {
+            // width: 20px;
+            // height: 20px;
+            // margin: 5px;
             background-color: white;
             border-radius: 4px;
           }
@@ -208,12 +232,12 @@ export default defineComponent({
         height: 35px;
         .item_icon {
           margin-left: 8px;
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
         }
         .item_text {
           margin-left: 8px;
-          font-size: 13px;
+          font-size: 15px;
           font-weight: 400;
           color: #ffffff;
         }

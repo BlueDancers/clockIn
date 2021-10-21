@@ -12,16 +12,16 @@
           </view>
         </view>
         <view class="data_item">
-          <view class="item_title">本月学习</view>
+          <view class="item_title">累计时间</view>
           <view class="item_num">
             <view class="num">{{ carrentTime }}</view>
             <view class="unit">hours</view>
           </view>
         </view>
         <view class="data_item">
-          <view class="item_title">连续打卡</view>
+          <view class="item_title">累计天数</view>
           <view class="item_num">
-            <view class="num">20</view>
+            <view class="num">{{ carrentDay }}</view>
             <view class="unit">day</view>
           </view>
         </view>
@@ -131,10 +131,16 @@ export default defineComponent({
       // 更新用户具体时间记录
       Promise.all([updateTodo(), updateUserTime(), updateTimeTable()])
         .then((res) => {
-          console.log('数据更新成功', res)
-          emit('endEvent')
-          timeData.getEventInfo()
-          close()
+          Taro.showToast({
+            title: '记录成功~',
+            duration: 1500,
+          })
+          console.log('恭喜你完成本次记录~', res)
+          setTimeout(() => {
+            emit('endEvent')
+            timeData.getEventInfo()
+            close()
+          }, 1400)
         })
         .catch((err) => {
           console.log(err)

@@ -4,20 +4,40 @@ import TimeData from './TimeData'
 
 function userData() {
   const islogin = ref(false)
+  // 用户基本数据
   const userInfo = ref({
     avatarUrl: '',
     nickName: '',
     _openid: '',
   })
+  // 目标事件与目标时间
+  const target = ref({
+    targetTitle: '',
+    targetTime: '',
+  })
   const db = Taro.cloud.database()
-
   userInfo.value = Taro.getStorageSync('userInfo')
   islogin.value = Taro.getStorageSync('login')
+  // 获取目标相关信息
+  function getTargetFun() {
+    // 首次获取
+    if (Taro.getStorageSync('login')) {
+      db.collection('user')
+        .where({
+          _openid: Taro.getStorageSync('userInfo')._openid,
+        })
+        .get()
+        .then((res) => {
+          target.value.targetTitle = res.data[0].targetTitle
+          target.value.targetTime = res.data[0].targetTime
+        })
+    }
+  }
   // 按钮触发登录
   function getUserProfile() {
     if (!Taro.getStorageSync('login')) {
       Taro.getUserProfile({
-        desc: '登录使用', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
+        desc: '登录使用',
         success: (info) => {
           Taro.cloud.callFunction({
             name: 'login',
@@ -25,6 +45,7 @@ function userData() {
             success: (res: any) => {
               console.log(info)
               getUserInfo({ ...info.userInfo, openid: res.result.openid })
+              getTargetFun()
             },
             fail: (err) => {
               console.error('[云函数] [login] 调用失败', err)
@@ -42,7 +63,7 @@ function userData() {
       })
       .get()
       .then((res) => {
-        console.log(res.data)
+        console.log('获取微信信息', res.data)
         if (res.data.length) {
           loginSucc({ ...res.data[0].data, _openid: res.data[0]._openid })
         } else {
@@ -85,9 +106,11 @@ function userData() {
   }
   return {
     getUserProfile,
+    getTargetFun,
     unLogin,
     userInfo,
     islogin,
+    target,
   }
 }
 
