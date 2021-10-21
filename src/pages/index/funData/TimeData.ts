@@ -36,10 +36,10 @@ function TimeData() {
         }
         try {
           let data = res.data[0]
-          // 获取本月学习多少天
           carrentEvent.value = data.timeObj[y][m]
-          // 积累多少小时
+          // 当月学习天数
           carrentDay.value = Object.keys(carrentEvent.value).length
+          // 当月学习时间
           let allTime = formatTimeArray(
             Object.keys(carrentEvent.value).reduce((item, data) => {
               return item + carrentEvent.value[data]
