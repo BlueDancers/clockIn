@@ -59,7 +59,9 @@ export default defineComponent({
     watchEffect(() => {
       if (props.eventEndShow) {
         let { startTime, endTime } = props.timeCore.data
-        let diffTime = (new Date(endTime).getTime() - new Date(startTime).getTime()) % (1000 * 60 * 60)
+        let diffTime =
+          (new Date(endTime.replace(/-/g, '/')).getTime() - new Date(startTime.replace(/-/g, '/')).getTime()) %
+          (1000 * 60 * 60)
         eventTime.value = Math.floor(diffTime / (1000 * 60))
         if (!timeData.carrentTime.value) {
           timeData.getEventInfo()
@@ -162,7 +164,9 @@ export default defineComponent({
     }
     function updateUserTime() {
       let { endTime, startTime } = props.timeCore.data
-      let carryTime = new Date(endTime).getTime() - new Date(startTime).getTime()
+      let carryTime = new Date(endTime.replace(/-/g, '/')).getTime() - new Date(startTime.replace(/-/g, '/')).getTime()
+      console.log('carryTime', carryTime)
+
       return (db as any)
         .collection('user')
         .where({

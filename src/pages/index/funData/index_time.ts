@@ -13,10 +13,10 @@ export default function indexTime() {
     }, 1000)
   }
   function startOnLine(data) {
-    let online = Date.now() - new Date(data.startTime).getTime()
+    let online = Date.now() - new Date(data.startTime.replace(/-/g, '/')).getTime()
     onLineTime.value = formatTimeArray(online).join(':')
     onLineIntVal = setInterval(() => {
-      let online = Date.now() - new Date(data.startTime).getTime()
+      let online = Date.now() - new Date(data.startTime.replace(/-/g, '/')).getTime()
       onLineTime.value = formatTimeArray(online).join(':')
     }, 1000)
   }

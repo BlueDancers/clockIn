@@ -9,7 +9,7 @@
           <view class="info_user">{{ userInfo.nickName }}</view>
           <view class="unfo_label">学渣</view>
         </view>
-        <view v-else class="info_unlogin" @click="getUserProfile()">
+        <view v-else class="info_unlogin" @click="getUserProfile">
           点击登录
         </view>
       </view>

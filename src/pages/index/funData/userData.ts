@@ -65,7 +65,7 @@ function userData() {
       .then((res) => {
         console.log('获取微信信息', res.data)
         if (res.data.length) {
-          loginSucc({ ...res.data[0].data, _openid: res.data[0]._openid })
+          loginSucc({ ...res.data[0], _openid: res.data[0]._openid })
         } else {
           registory(data)
         }
